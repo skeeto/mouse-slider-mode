@@ -32,10 +32,24 @@ various major modes.")
   :keymap mouse-slider-mode-map
   :lighter " MSlider")
 
+(defvar mouse-slider-number-regexp
+  "[-+]?[0-9]*\\.?[0-9]+\\([eE][-+]?[0-9]+\\)?"
+  "Regular expression used to match numbers.")
+
+(defun mouse-slider-number-bounds ()
+  "Return the bounds of the number at point."
+  (save-excursion
+    (while (and (not (bobp)) (looking-at-p mouse-slider-number-regexp))
+      (backward-char 1))
+    (unless (bobp) (forward-char 1))
+    (let ((start (point)))
+      (re-search-forward mouse-slider-number-regexp)
+      (cons start (point)))))
+
 (defun* mouse-slider-replace-number (value)
   "Replace the number at point with VALUE."
   (save-excursion
-    (let ((region (bounds-of-thing-at-point 'symbol)))
+    (let ((region (mouse-slider-number-bounds)))
       (delete-region (car region) (cdr region))
       (goto-char (car region))
       (insert (format "%s" value)))))
