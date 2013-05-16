@@ -1,4 +1,4 @@
-;;; mouse-slider-mode.el --- scale numbers dragged until the mouse cursor
+;;; mouse-slider-mode.el --- scale numbers dragged under the mouse
 
 ;; This is free and unencumbered software released into the public domain.
 
