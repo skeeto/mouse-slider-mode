@@ -9,6 +9,18 @@
 (require 'cl)
 (require 'thingatpt)
 
+(defvar mouse-slider-scale 1500
+  "Rate at which numbers scale. Smaller means faster.")
+
+(defvar mouse-slider-mode-eval-funcs
+  `((emacs-lisp-mode . ,(apply-partially #'eval-defun nil)))
+  "Alist of evaluation functions to run after scaling numbers in
+various major modes.")
+
+(defvar-local mouse-slider-eval t
+  "When true, run the evaluation function listed in
+`mouse-slider-mode-eval-funcs' after updating numbers.")
+
 (defvar mouse-slider-mode-map
   (let ((map (make-sparse-keymap)))
     (prog1 map
@@ -21,15 +33,12 @@
   :lighter " MSlider")
 
 (defun* mouse-slider-replace-number (value)
-  "Replace the number a point with VALUE."
+  "Replace the number at point with VALUE."
   (save-excursion
     (let ((region (bounds-of-thing-at-point 'symbol)))
       (delete-region (car region) (cdr region))
       (goto-char (car region))
       (insert (format "%s" value)))))
-
-(defvar mouse-slider-scale 1500
-  "Rate at which numbers scale. Smaller means faster.")
 
 (defun mouse-slider-round (value decimals)
   "Round VALUE to DECIMALS decimal places."
@@ -52,11 +61,16 @@ number where the mouse drag began."
           (track-mouse
             (loop for movement = (read-event)
                   while (mouse-movement-p movement)
+                  ;; Replace
                   for diff = (- (x movement) (x event))
                   for value = (mouse-slider-scale base diff)
                   when (not (zerop (x movement)))
                   do (mouse-slider-replace-number
-                      (mouse-slider-round value 2)))))))))
+                      (mouse-slider-round value 2))
+                  ;; Eval
+                  for f = (cdr (assoc major-mode mouse-slider-mode-eval-funcs))
+                  when (and f mouse-slider-eval)
+                  do (funcall f))))))))
 
 (provide 'mouse-slider-mode)
 
