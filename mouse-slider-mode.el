@@ -2,6 +2,10 @@
 
 ;; This is free and unencumbered software released into the public domain.
 
+;; Author: Christopher Wellons <mosquitopsu@gmail.com>
+;; URL: https://github.com/skeeto/mouse-slider-mode
+;; Version: 0.1
+
 ;;; Commentary:
 
 ;; With this minor mode enabled in a buffer, right-clicking and
@@ -46,6 +50,7 @@ various major modes.")
       (define-key map (kbd "<down-mouse-3>") 'mouse-slider-slide)))
   "Keymap for mouse-slider-mode.")
 
+;;;###autoload
 (define-minor-mode mouse-slider-mode
   "Scales numbers when they are right-click dragged over."
   :keymap mouse-slider-mode-map
