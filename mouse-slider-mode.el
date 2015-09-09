@@ -81,11 +81,14 @@ various major modes.")
 (defun mouse-slider-round (value decimals)
   "Round VALUE to DECIMALS decimal places."
   (let ((n (expt 10 decimals)))
-    (/ (round (* value n)) 1.0 n)))
+    (cl-coerce (/ (round (* value n)) 1.0 n) 'float)))
 
 (defun mouse-slider-scale (base pixels)
   "Scale BASE by a drag distance of PIXELS."
-  (expt base (1+ (/ pixels 1.0 mouse-slider-scale))))
+  (let* ((half-total-range (* 2.0 (1+ (abs base))))
+         (drag-distance-value (* half-total-range
+                                 (/ pixels 1.0 mouse-slider-scale))))
+    (+ base drag-distance-value)))
 
 (defun mouse-slider-slide (event)
   "Handle a mouse slider event by continuously updating the
@@ -95,21 +98,24 @@ number where the mouse drag began."
     (goto-char (posn-point (second event)))
     (let ((base (thing-at-point 'number)))
       (when base
-        (flet ((x (event) (car (posn-x-y (second event)))))
+        (cl-flet ((x (event) (car (posn-x-y (second event)))))
           (track-mouse
             (loop for movement = (read-event)
                   while (mouse-movement-p movement)
-                  ;; Replace
+                  ;; left means decrease, right means increase
                   for diff = (- (x movement) (x event))
                   for value = (mouse-slider-scale base diff)
                   when (not (zerop (x movement)))
                   do (mouse-slider-replace-number
-                      (mouse-slider-round value 2))
+                      (if (integerp base)
+                          ;; integers remain integers
+                          (round value)
+                        ;; round to 2 decimal places
+                        (mouse-slider-round value 2)))
                   ;; Eval
                   for f = (cdr (assoc major-mode mouse-slider-mode-eval-funcs))
                   when (and f mouse-slider-eval)
                   do (funcall f))))))))
-
 (provide 'mouse-slider-mode)
 
 ;;; mouse-slider-mode.el ends here
