@@ -116,6 +116,12 @@ number where the mouse drag began."
                   for f = (cdr (assoc major-mode mouse-slider-mode-eval-funcs))
                   when (and f mouse-slider-eval)
                   do (funcall f))))))))
+
+(defun mouse-slider-toggle-eval ()
+  (interactive)
+  (setq mouse-slider-eval (not mouse-slider-eval))
+  (message "mouse-slider-eval: %s" (if mouse-slider-eval "enabled" "disabled")))
+
 (provide 'mouse-slider-mode)
 
 ;;; mouse-slider-mode.el ends here
