@@ -1,10 +1,11 @@
-;;; mouse-slider-mode.el --- scale numbers dragged under the mouse
+;;; mouse-slider-mode.el --- scale numbers dragged under the mouse -*- lexical-binding: t; -*-
 
 ;; This is free and unencumbered software released into the public domain.
 
 ;; Author: Christopher Wellons <mosquitopsu@gmail.com>
 ;; URL: https://github.com/skeeto/mouse-slider-mode
 ;; Version: 0.1
+;; Package-Requires: ((emacs "24.3") (cl-lib "0.3"))
 
 ;;; Commentary:
 
@@ -29,7 +30,7 @@
 
 ;;; Code:
 
-(require 'cl)
+(require 'cl-lib)
 (require 'thingatpt)
 
 (defvar mouse-slider-scale 1500
@@ -70,7 +71,7 @@ various major modes.")
       (re-search-forward mouse-slider-number-regexp)
       (cons start (point)))))
 
-(defun* mouse-slider-replace-number (value)
+(cl-defun mouse-slider-replace-number (value)
   "Replace the number at point with VALUE."
   (save-excursion
     (let ((region (mouse-slider-number-bounds)))
@@ -80,14 +81,14 @@ various major modes.")
 
 (defun mouse-slider-round (value decimals)
   "Round VALUE to DECIMALS decimal places."
-  (let ((n (expt 10 decimals)))
-    (cl-coerce (/ (round (* value n)) 1.0 n) 'float)))
+  (let ((n (float (expt 10 decimals))))
+    (/ (round (* value n)) n)))
 
 (defun mouse-slider-scale (base pixels)
   "Scale BASE by a drag distance of PIXELS."
   (let* ((half-total-range (* 2.0 (1+ (abs base))))
          (drag-distance-value (* half-total-range
-                                 (/ pixels 1.0 mouse-slider-scale))))
+                                 (/ pixels (float mouse-slider-scale)))))
     (+ base drag-distance-value)))
 
 (defun mouse-slider-slide (event)
@@ -95,32 +96,34 @@ various major modes.")
 number where the mouse drag began."
   (interactive "e")
   (save-excursion
-    (goto-char (posn-point (second event)))
+    (goto-char (posn-point (cl-second event)))
     (let ((base (thing-at-point 'number)))
       (when base
-        (cl-flet ((x (event) (car (posn-x-y (second event)))))
+        (cl-flet ((x (event) (car (posn-x-y (cl-second event)))))
           (track-mouse
-            (loop for movement = (read-event)
-                  while (mouse-movement-p movement)
-                  ;; left means decrease, right means increase
-                  for diff = (- (x movement) (x event))
-                  for value = (mouse-slider-scale base diff)
-                  when (not (zerop (x movement)))
-                  do (mouse-slider-replace-number
-                      (if (integerp base)
-                          ;; integers remain integers
-                          (round value)
-                        ;; round to 2 decimal places
-                        (mouse-slider-round value 2)))
-                  ;; Eval
-                  for f = (cdr (assoc major-mode mouse-slider-mode-eval-funcs))
-                  when (and f mouse-slider-eval)
-                  do (funcall f))))))))
+            (cl-loop for movement = (read-event)
+                     while (mouse-movement-p movement)
+                     ;; left means decrease, right means increase
+                     for diff = (- (x movement) (x event))
+                     for value = (mouse-slider-scale base diff)
+                     when (not (zerop (x movement)))
+                     do (mouse-slider-replace-number
+                         (if (integerp base)
+                             ;; integers remain integers
+                             (round value)
+                           ;; round to 2 decimal places
+                           (mouse-slider-round value 2)))
+                     ;; Eval
+                     for f =
+                     (cdr (assoc major-mode mouse-slider-mode-eval-funcs))
+                     when (and f mouse-slider-eval)
+                     do (funcall f))))))))
 
 (defun mouse-slider-toggle-eval ()
   (interactive)
   (setq mouse-slider-eval (not mouse-slider-eval))
-  (message "mouse-slider-eval: %s" (if mouse-slider-eval "enabled" "disabled")))
+  (message "mouse-slider-eval: %s"
+           (if mouse-slider-eval "enabled" "disabled")))
 
 (provide 'mouse-slider-mode)
 
